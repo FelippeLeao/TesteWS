@@ -95,8 +95,16 @@
             .dadosCliente = objCliente
         End With
 
+        Dim listaRequisicao As New List(Of Requisicao)
+        With listaRequisicao
+            .Add(objRequisicao)
+            .Add(objRequisicao)
+        End With
+        Dim listaRetornos(0) As Retorno
+
         'Aciona Webservice
         objRetorno = objWsScorpions.GetFreteByCepFornecedor(objRequisicao)
+        'listaRetornos = objWsScorpions.GetConjuntoFreteByCepFornecedor(listaRequisicao.ToArray)
 
         'Exibe Erro retornado pelo Webservice em tela, se houver
         If Not objRetorno Is Nothing AndAlso objRetorno.dadosResposta.msgErro <> "" Then

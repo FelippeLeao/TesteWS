@@ -473,7 +473,7 @@ End Class
 Public Class WSConsultaFreteScorpions
     Inherits System.Web.Services.WebService
 
-    <WebMethod()>
+    <WebMethod(MessageName:="teste 1")>
     Public Function GetFreteByCepFornecedor(ByRef objRequisicao As Requisicao) As Retorno
         Dim objRetorno As New Retorno
         Dim objResposta As New StatusResposta
@@ -525,6 +525,65 @@ Public Class WSConsultaFreteScorpions
                 Return objRetorno
             End Try
         End With
+    End Function
+
+    <WebMethod(MessageName:="teste 2")>
+    Public Function GetConjuntoFreteByCepFornecedor(ByRef objRequisicao() As Requisicao) As Retorno()
+        Dim listaRetorno As New List(Of Retorno)
+        For a As Integer = 0 To objRequisicao.Length - 1
+
+            Dim objRetorno As New Retorno
+            Dim objResposta As New StatusResposta
+            objRetorno.dadosResposta = objResposta
+            Dim objWsCorreiosGetEndByCep = New WSCorreiosGetEnderecoByCep.AtendeClienteClient
+            Dim objWsCorreiosPrecoPrazo = New WSCorreios.CalcPrecoPrazoWSSoapClient
+            'ValidaCampos(objRequisicao)
+            With objRequisicao(a)
+                Try
+                    Dim pesoTotal As Double = (.dadosProduto.peso + .dadosProduto.pesoEmbalagem) * .dadosProduto.quantidade
+                    If .dadosProduto.dadosFrete.nCdFormato = 3 Then 'Se formato for envelope, Correios exige que a altura seja zero.
+                        .dadosProduto.altura = 0
+                    End If
+
+                    Dim objEnderecoCompletoFornecedor As WSCorreiosGetEnderecoByCep.enderecoERP = objWsCorreiosGetEndByCep.consultaCEP(.dadosFornecedor.cep)
+                    Dim objEnderecoCompletoCliente As WSCorreiosGetEnderecoByCep.enderecoERP = objWsCorreiosGetEndByCep.consultaCEP(.dadosCliente.cep)
+                    If (Not objEnderecoCompletoFornecedor Is Nothing) AndAlso (Not objEnderecoCompletoCliente Is Nothing) Then
+                        Dim objPrecoPrazo As WSCorreios.cResultado = objWsCorreiosPrecoPrazo.CalcPrecoPrazo(
+                        .dadosFornecedor.nCdEmpresa,
+                        .dadosFornecedor.sDsSenha,
+                        .dadosProdutoFrete.nCdServico,
+                        .dadosFornecedor.cep,
+                        .dadosCliente.cep,
+                        pesoTotal,
+                        .dadosProdutoFrete.nCdFormato,
+                        .dadosProduto.comprimento,
+                        .dadosProduto.altura,
+                        .dadosProduto.largura,
+                        .dadosProduto.diametro,
+                        .dadosProdutoFrete.sCdMaoPropria,
+                        .dadosProdutoFrete.nVlValorDeclarado,
+                        .dadosProdutoFrete.sCdAvisoRecebimento
+                        )
+                        If objPrecoPrazo.Servicos(0).MsgErro <> "" Then
+                            SetDadosResposta(2, -888, objPrecoPrazo.Servicos(0).MsgErro, objRetorno.dadosResposta)
+                        Else
+                            With objRetorno
+                                .prazoFrete = objPrecoPrazo.Servicos(0).PrazoEntrega
+                                .valorFrete = CType(objPrecoPrazo.Servicos(0).Valor.Replace(",", "."), Double)
+                                SetDadosResposta(-1, 500, "", .dadosResposta)
+                            End With
+                        End If
+                    Else
+                        SetDadosResposta(1, -777, "CEP inexistente ou inválido.", objRetorno.dadosResposta)
+                    End If
+                    listaRetorno.Add(objRetorno)
+                Catch ex As Exception
+                    SetDadosResposta(1, -777, ex.Message, objRetorno.dadosResposta)
+                    listaRetorno.Add(objRetorno)
+                End Try
+            End With
+        Next a
+        Return listaRetorno.ToArray
     End Function
 
     Private Sub SetDadosResposta(ByVal codErro As Integer, ByVal codStatus As Integer, ByVal msgErro As String, ByRef dadosResposta As StatusResposta)
