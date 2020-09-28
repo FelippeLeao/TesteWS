@@ -500,7 +500,7 @@ Public Class WSConsultaFreteScorpions
                     pesoTotal,
                     .dadosProdutoFrete.nCdFormato,
                     .dadosProduto.comprimento,
-                    .dadosProduto.altura,
+                    (.dadosProduto.altura * .dadosProduto.quantidade),
                     .dadosProduto.largura,
                     .dadosProduto.diametro,
                     .dadosProdutoFrete.sCdMaoPropria,
